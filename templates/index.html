@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VISCA PTZ Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-color: #1e1e1e;
+            --input-bg: #2c2c2c;
+            --accent-color: #00e5ff;
+            --text-color: #e0e0e0;
+            --danger-color: #ff2a6d;
+            --gamepad-color: #b388ff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            width: 100%;
+            background: var(--panel-color);
+            border-bottom: 1px solid #333;
+            padding: 15px 0;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            padding: 0 20px;
+        }
+
+        .conn-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            background: var(--input-bg);
+            padding: 10px 20px;
+            border-radius: 50px;
+            border: 1px solid #444;
+            max-width: 100%;
+        }
+
+        input,
+        select {
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            background: #222;
+            color: white;
+            outline: none;
+            font-size: 0.9rem;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--accent-color);
+        }
+
+        .conn-group {
+            display: none;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .conn-group.active {
+            display: flex;
+        }
+
+        button.primary {
+            background: var(--accent-color);
+            color: #000;
+            font-weight: 700;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.2s;
+        }
+
+        button.primary:hover {
+            box-shadow: 0 0 10px var(--accent-color);
+        }
+
+        button.primary:active {
+            transform: scale(0.96);
+        }
+
+        #gp-status {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            color: var(--gamepad-color);
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-top: 5px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.7
+            }
+
+            50% {
+                opacity: 1
+            }
+
+            100% {
+                opacity: 0.7
+            }
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 95%;
+            max-width: 1000px;
+            padding-bottom: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--panel-color);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            width: 100%;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: var(--accent-color);
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .slider-group {
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #444;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 5px var(--accent-color);
+        }
+
+        .joystick-container {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .joystick-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            grid-template-rows: repeat(3, 80px);
+            gap: 8px;
+        }
+
+        .joy-btn,
+        .joy-center {
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .joy-btn {
+            background: #2a2a2a;
+            color: #666;
+            cursor: pointer;
+            transition: 0.1s;
+            border: 1px solid #333;
+        }
+
+        .joy-btn:hover {
+            background: #333;
+            color: white;
+        }
+
+        .joy-btn:active {
+            background: var(--accent-color);
+            color: black;
+            border-color: var(--accent-color);
+        }
+
+        .joy-center {
+            color: #555;
+            pointer-events: none;
+        }
+
+        .optics-grid {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .round-btn-lg {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #2a2a2a;
+            border: 2px solid #444;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .round-btn-lg:active {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .btn-small:hover {
+            background: #444;
+        }
+
+        .btn-small:active {
+            background: var(--accent-color);
+            color: black;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #222;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #333;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #444;
+            transition: .4s;
+            border-radius: 26px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--accent-color);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(24px);
+            background-color: #000;
+        }
+
+        #status-msg {
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .status-ok {
+            color: var(--accent-color);
+        }
+
+        .status-err {
+            color: var(--danger-color);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="header-content">
+            <div style="font-size: 1.2rem; font-weight: bold; color: white;">
+                <i class="fas fa-satellite-dish"></i> VISCA COMMANDER
+            </div>
+
+            <div class="conn-row">
+                <select id="conn-mode" onchange="toggleConnFields()">
+                    <option value="tcp">Network (TCP)</option>
+                    <option value="serial">Serial (RS232)</option>
+                </select>
+                <div id="tcp-fields" class="conn-group active">
+                    <input type="text" id="conn-ip" placeholder="192.168.1.100" value="192.168.1.28"
+                        style="width: 130px;">
+                    <input type="number" id="conn-port" placeholder="Port" value="5678" style="width: 80px;">
+                </div>
+                <div id="serial-fields" class="conn-group">
+                    <input type="text" id="conn-com" placeholder="COM3" value="COM3" style="width: 130px;">
+                    <select id="conn-baud">
+                        <option value="9600" selected>9600</option>
+                        <option value="38400">38400</option>
+                        <option value="115200">115200</option>
+                    </select>
+                </div>
+                <button class="primary" onclick="connectCamera()">Connect</button>
+            </div>
+            <div id="status-msg">Disconnected</div>
+            <div id="gp-status"><i class="fas fa-gamepad"></i> Gamepad Connected</div>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <div class="panel">
+            <h2>Movement (PT)</h2>
+            <div class="slider-group">
+                <div class="slider-header"><span>Pan Speed</span> <span id="lbl-pan">50%</span></div>
+                <input type="range" min="1" max="100" value="50" id="speed-pan" oninput="updateConfig()">
+            </div>
+            <div class="slider-group">
+                <div class="slider-header"><span>Tilt Speed</span> <span id="lbl-tilt">50%</span></div>
+                <input type="range" min="1" max="100" value="50" id="speed-tilt" oninput="updateConfig()">
+            </div>
+            <div class="joystick-container">
+                <div class="joystick-grid">
+                    <div class="joy-btn" data-cmd="move_upleft"><i class="fas fa-arrow-up"
+                            style="transform: rotate(-45deg)"></i></div>
+                    <div class="joy-btn" data-cmd="move_up"><i class="fas fa-arrow-up"></i></div>
+                    <div class="joy-btn" data-cmd="move_upright"><i class="fas fa-arrow-up"
+                            style="transform: rotate(45deg)"></i></div>
+                    <div class="joy-btn" data-cmd="move_left"><i class="fas fa-arrow-left"></i></div>
+                    <div class="joy-center"><i class="fas fa-crosshairs"></i></div>
+                    <div class="joy-btn" data-cmd="move_right"><i class="fas fa-arrow-right"></i></div>
+                    <div class="joy-btn" data-cmd="move_downleft"><i class="fas fa-arrow-down"
+                            style="transform: rotate(45deg)"></i></div>
+                    <div class="joy-btn" data-cmd="move_down"><i class="fas fa-arrow-down"></i></div>
+                    <div class="joy-btn" data-cmd="move_downright"><i class="fas fa-arrow-down"
+                            style="transform: rotate(-45deg)"></i></div>
+                </div>
+            </div>
+            <div class="toggle-row">
+                <div><i class="fas fa-bolt" style="color:#aaa;"></i> <span style="margin-left:5px">Disable IR
+                        (Anti-Latency)</span></div>
+                <label class="switch">
+                    <input type="checkbox" id="ir-toggle" onchange="updateConfig()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Optics & Image</h2>
+            <div class="slider-group">
+                <div class="slider-header"><span>Zoom Speed (0-7)</span> <span id="lbl-zoom">4</span></div>
+                <input type="range" min="0" max="7" value="4" id="speed-zoom" oninput="updateConfig()">
+            </div>
+            <div class="optics-grid">
+                <div style="text-align: center;">
+                    <div style="margin-bottom:8px; color:#888; font-size:0.8rem; font-weight:bold;">ZOOM</div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="round-btn-lg" data-cmd="zoom_wide"><i class="fas fa-minus"></i></button>
+                        <button class="round-btn-lg" data-cmd="zoom_tele"><i class="fas fa-plus"></i></button>
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="margin-bottom:8px; color:#888; font-size:0.8rem; font-weight:bold;">FOCUS</div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="round-btn-lg" data-cmd="focus_far"><i class="fas fa-expand"></i></button>
+                        <button class="round-btn-lg" data-cmd="focus_near"><i class="fas fa-compress"></i></button>
+                    </div>
+                    <div style="margin-top:5px; display:flex; gap:5px; justify-content:center;">
+                        <button class="btn-small" onclick="sendCommand('focus_auto')">Auto</button>
+                        <button class="btn-small" onclick="sendCommand('focus_manual')">Man</button>
+                    </div>
+                </div>
+            </div>
+            <hr style="border-color:#333; margin: 20px 0;">
+            <div class="control-row">
+                <span>White Balance</span>
+                <div class="btn-group">
+                    <button class="btn-small" onclick="sendCommand('wb_auto')">Auto</button>
+                    <button class="btn-small" onclick="sendCommand('wb_manual')">Manual</button>
+                </div>
+            </div>
+            <div class="control-row">
+                <span>Iris Mode</span>
+                <div class="btn-group">
+                    <button class="btn-small" onclick="sendCommand('iris_auto')">Auto</button>
+                    <button class="btn-small" onclick="sendCommand('iris_manual')">Manual</button>
+                </div>
+            </div>
+            <div class="slider-group">
+                <div class="slider-header"><span>Iris Level (0-50)</span> <span id="lbl-iris">25</span></div>
+                <input type="range" min="0" max="50" value="25"
+                    oninput="sendVal('iris_set', this.value); document.getElementById('lbl-iris').innerText=this.value">
+            </div>
+            <div class="slider-group">
+                <div class="slider-header"><span>Gain Level (0-30dB)</span> <span id="lbl-gain">10</span></div>
+                <input type="range" min="0" max="30" value="10"
+                    oninput="sendVal('gain_set', this.value); document.getElementById('lbl-gain').innerText=this.value">
+            </div>
+            <div class="control-row" style="margin-top:20px; background:#222; padding:10px; border-radius:8px;">
+                <span>Call LED (Tally)</span>
+                <div class="btn-group">
+                    <button class="btn-small" onclick="sendCommand('led_on')"
+                        style="color:var(--accent-color)">ON</button>
+                    <button class="btn-small" onclick="sendCommand('led_blink')">BLINK</button>
+                    <button class="btn-small" onclick="sendCommand('led_off')">OFF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        // --- UI & CONNECTION LOGIC ---
+        function toggleConnFields() {
+            const mode = document.getElementById('conn-mode').value;
+            document.getElementById('tcp-fields').classList.toggle('active', mode === 'tcp');
+            document.getElementById('serial-fields').classList.toggle('active', mode === 'serial');
+        }
+
+        function connectCamera() {
+            const mode = document.getElementById('conn-mode').value;
+            let data = { mode: mode };
+            if (mode === 'tcp') {
+                data.ip = document.getElementById('conn-ip').value;
+                data.port = document.getElementById('conn-port').value;
+            } else {
+                data.port = document.getElementById('conn-com').value;
+                data.baud = document.getElementById('conn-baud').value;
+            }
+            document.getElementById('status-msg').innerText = "Connecting...";
+            socket.emit('connect_camera', data);
+        }
+
+        socket.on('connection_status', (data) => {
+            const el = document.getElementById('status-msg');
+            el.innerText = data.msg;
+            el.className = data.success ? 'status-ok' : 'status-err';
+        });
+
+        function sendCommand(cmd) { socket.emit('ptz_command', { cmd: cmd }); }
+        function sendVal(cmd, val) { socket.emit('ptz_command', { cmd: cmd, val: val }); }
+
+        // --- GAMEPAD LOGIC PARALLELA ---
+        let gpIndex = -1;
+        let lastGpCmd = null;
+        let lastPayloadStr = "";
+        let lastZooming = false;
+
+        // Stato Movimento (PT)
+        let lastMoveCmd = 'stop';
+        let lastMovePayload = "";
+        let moveStopTimer = null;
+        let isMoveStopping = false;
+
+        // Stato Zoom (Z)
+        let lastZoomCmd = 'zoom_stop';
+        let lastZoomPayload = "";
+
+        // Configurazione
+        const DEADZONE = 0.15;
+        const MAX_PAN = 24;
+        const MAX_TILT = 20;
+
+        window.addEventListener("gamepadconnected", (e) => {
+            gpIndex = e.gamepad.index;
+            document.getElementById('gp-status').style.display = 'flex';
+            requestAnimationFrame(gamepadLoop);
+        });
+        window.addEventListener("gamepaddisconnected", (e) => {
+            gpIndex = -1;
+            document.getElementById('gp-status').style.display = 'none';
+        });
+
+        function gamepadLoop() {
+            if (gpIndex === -1) return;
+            const gp = navigator.getGamepads()[gpIndex];
+            if (!gp) return;
+
+            const DEADZONE = 0.10;
+            const EXPO = 1.8;
+            const MAX_PAN = 24;
+            const MAX_TILT = 20;
+
+            function applyExpo(val) {
+                const sign = Math.sign(val);
+                const mag = Math.abs(val);
+                if (mag < DEADZONE) return 0;
+                const norm = (mag - DEADZONE) / (1 - DEADZONE);
+                return sign * Math.pow(norm, EXPO);
+            }
+
+            /* =====================
+               PAN / TILT CONTINUO
+               ===================== */
+
+            const panVal = applyExpo(gp.axes[0]);
+            const tiltVal = applyExpo(gp.axes[1]);
+
+            const p_dir = panVal < 0 ? -1 : (panVal > 0 ? 1 : 0);
+            const t_dir = tiltVal < 0 ? -1 : (tiltVal > 0 ? 1 : 0);
+
+            const p_spd = Math.max(1, Math.ceil(Math.abs(panVal) * MAX_PAN));
+            const t_spd = Math.max(1, Math.ceil(Math.abs(tiltVal) * MAX_TILT));
+
+            const movePayload = {
+                p_dir: p_dir,
+                t_dir: t_dir,
+                p_spd: p_spd,
+                t_spd: t_spd
+            };
+
+            const moveStr = JSON.stringify(movePayload);
+
+            if (moveStr !== lastPayloadStr) {
+                socket.emit('ptz_command', { cmd: 'move_raw', ...movePayload });
+                lastPayloadStr = moveStr;
+            }
+
+            /* =====================
+               ZOOM SEPARATO
+               ===================== */
+
+            const zoomOutVal = gp.buttons[6].value;
+            const zoomInVal = gp.buttons[7].value;
+
+            if (zoomInVal > 0.1) {
+                socket.emit('ptz_command', {
+                    cmd: 'zoom_tele',
+                    z_spd: Math.floor(zoomInVal * 7)
+                });
+            }
+            else if (zoomOutVal > 0.1) {
+                socket.emit('ptz_command', {
+                    cmd: 'zoom_wide',
+                    z_spd: Math.floor(zoomOutVal * 7)
+                });
+            }
+            else {
+                // Manda stop zoom SOLO se prima stavamo zoomando
+                if (lastZooming) {
+                    socket.emit('ptz_command', { cmd: 'zoom_stop' });
+                    lastZooming = false;
+                }
+            }
+
+            lastZooming = (zoomInVal > 0.1 || zoomOutVal > 0.1);
+
+            /* =====================
+               FOCUS & PANIC
+               ===================== */
+
+            if (gp.buttons[12].pressed) socket.emit('ptz_command', { cmd: 'focus_near' });
+            if (gp.buttons[13].pressed) socket.emit('ptz_command', { cmd: 'focus_far' });
+            if (gp.buttons[3].pressed) socket.emit('ptz_command', { cmd: 'focus_auto' });
+            if (gp.buttons[0].pressed) socket.emit('ptz_command', { cmd: 'stop' });
+
+            requestAnimationFrame(gamepadLoop);
+        }
+
+
+        // --- UI LISTENERS (MOUSE/TOUCH) ---
+        document.querySelectorAll('.joy-btn, .round-btn-lg').forEach(btn => {
+            const cmd = btn.getAttribute('data-cmd');
+            const start = (e) => { e.preventDefault(); socket.emit('ptz_command', { cmd: cmd }); };
+            const end = (e) => {
+                e.preventDefault();
+                if (cmd.includes('zoom')) socket.emit('ptz_command', { cmd: 'zoom_stop' });
+                else if (cmd.includes('focus')) socket.emit('ptz_command', { cmd: 'focus_stop' });
+                else socket.emit('ptz_command', { cmd: 'stop' });
+            };
+            btn.addEventListener('mousedown', start);
+            btn.addEventListener('mouseup', end);
+            btn.addEventListener('mouseleave', end);
+            btn.addEventListener('touchstart', start, { passive: false });
+            btn.addEventListener('touchend', end, { passive: false });
+        });
+
+        function updateConfig() {
+            const pSpeed = document.getElementById('speed-pan').value;
+            const tSpeed = document.getElementById('speed-tilt').value;
+            const zSpeed = document.getElementById('speed-zoom').value;
+            const irDisable = document.getElementById('ir-toggle').checked;
+            document.getElementById('lbl-pan').innerText = pSpeed + '%';
+            document.getElementById('lbl-tilt').innerText = tSpeed + '%';
+            document.getElementById('lbl-zoom').innerText = zSpeed;
+            socket.emit('config_change', {
+                pan_speed: pSpeed, tilt_speed: tSpeed, zoom_speed: zSpeed, ir_disable: irDisable
+            });
+        }
+
+        toggleConnFields();
+        setTimeout(updateConfig, 500);
+    </script>
+</body>
+
+</html>
