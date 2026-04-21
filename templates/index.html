@@ -122,17 +122,9 @@
         }
 
         @keyframes pulse {
-            0% {
-                opacity: 0.7
-            }
-
-            50% {
-                opacity: 1
-            }
-
-            100% {
-                opacity: 0.7
-            }
+            0% { opacity: 0.7 }
+            50% { opacity: 1 }
+            100% { opacity: 0.7 }
         }
 
         .dashboard {
@@ -276,7 +268,7 @@
         .control-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             align-items: center;
         }
 
@@ -373,6 +365,14 @@
         .status-err {
             color: var(--danger-color);
         }
+
+        /* Delineator style */
+        .section-divider {
+            border-color: #333;
+            margin: 20px 0;
+            border-style: solid;
+            border-width: 1px 0 0 0;
+        }
     </style>
 </head>
 
@@ -410,6 +410,7 @@
     </header>
 
     <div class="dashboard">
+        <!-- Pannello Sinistro: PTZ e Movimento -->
         <div class="panel">
             <h2>Movement (PT)</h2>
             <div class="slider-group">
@@ -445,8 +446,18 @@
                     <span class="slider"></span>
                 </label>
             </div>
+            
+            <div class="control-row" style="margin-top:20px; background:#222; padding:10px; border-radius:8px;">
+                <span>Call LED (Tally)</span>
+                <div class="btn-group">
+                    <button class="btn-small" onclick="sendCommand('led_on')" style="color:var(--accent-color)">ON</button>
+                    <button class="btn-small" onclick="sendCommand('led_blink')">BLINK</button>
+                    <button class="btn-small" onclick="sendCommand('led_off')">OFF</button>
+                </div>
+            </div>
         </div>
 
+        <!-- Pannello Destro: Ottica, Esposizione e Colore -->
         <div class="panel">
             <h2>Optics & Image</h2>
             <div class="slider-group">
@@ -473,20 +484,18 @@
                     </div>
                 </div>
             </div>
-            <hr style="border-color:#333; margin: 20px 0;">
+
+            <hr class="section-divider">
+
+            <!-- EXPOSURE CONTROL -->
             <div class="control-row">
-                <span>White Balance</span>
-                <div class="btn-group">
-                    <button class="btn-small" onclick="sendCommand('wb_auto')">Auto</button>
-                    <button class="btn-small" onclick="sendCommand('wb_manual')">Manual</button>
-                </div>
-            </div>
-            <div class="control-row">
-                <span>Iris Mode</span>
-                <div class="btn-group">
-                    <button class="btn-small" onclick="sendCommand('iris_auto')">Auto</button>
-                    <button class="btn-small" onclick="sendCommand('iris_manual')">Manual</button>
-                </div>
+                <span>Exposure Mode</span>
+                <select id="exp-mode-select" onchange="sendCommand('exposure_' + this.value)" class="btn-small" style="background:#333; color:white; border: 1px solid #555; padding: 5px; border-radius: 4px; outline: none; cursor: pointer;">
+                    <option value="auto">Auto</option>
+                    <option value="iris_pri">Iris Priority (Suggested)</option>
+                    <option value="shutter_pri">Shutter Priority</option>
+                    <option value="manual">Full Manual</option>
+                </select>
             </div>
             <div class="slider-group">
                 <div class="slider-header"><span>Iris Level (0-50)</span> <span id="lbl-iris">25</span></div>
@@ -494,19 +503,62 @@
                     oninput="sendVal('iris_set', this.value); document.getElementById('lbl-iris').innerText=this.value">
             </div>
             <div class="slider-group">
-                <div class="slider-header"><span>Gain Level (0-30dB)</span> <span id="lbl-gain">10</span></div>
-                <input type="range" min="0" max="30" value="10"
+                <div class="slider-header"><span>Gain Level (0-30)</span> <span id="lbl-gain">15</span></div>
+                <input type="range" min="0" max="30" value="15"
                     oninput="sendVal('gain_set', this.value); document.getElementById('lbl-gain').innerText=this.value">
             </div>
-            <div class="control-row" style="margin-top:20px; background:#222; padding:10px; border-radius:8px;">
-                <span>Call LED (Tally)</span>
+
+            <hr class="section-divider">
+
+            <!-- WHITE BALANCE CONTROL -->
+            <div class="control-row">
+                <span>White Balance</span>
                 <div class="btn-group">
-                    <button class="btn-small" onclick="sendCommand('led_on')"
-                        style="color:var(--accent-color)">ON</button>
-                    <button class="btn-small" onclick="sendCommand('led_blink')">BLINK</button>
-                    <button class="btn-small" onclick="sendCommand('led_off')">OFF</button>
+                    <button class="btn-small" onclick="sendCommand('wb_auto')">Auto</button>
+                    <button class="btn-small" onclick="sendCommand('wb_manual')">Manual</button>
                 </div>
             </div>
+            <div class="slider-group">
+                <div class="slider-header"><span>WB Table Direct (0-255)</span> <span id="lbl-wbtable">0</span></div>
+                <input type="range" min="0" max="255" value="0"
+                    oninput="sendVal('wb_table_set', this.value); document.getElementById('lbl-wbtable').innerText=this.value">
+            </div>
+
+            <hr class="section-divider">
+
+            <!-- CISCO SPECIAL FUNCTIONS -->
+            <h2>Cisco Special Functions</h2>
+            
+            <div class="control-row">
+                <span>Backlight Compensation</span>
+                <div class="btn-group">
+                    <button class="btn-small" onclick="sendCommand('backlight_on')">On</button>
+                    <button class="btn-small" onclick="sendCommand('backlight_off')">Off</button>
+                </div>
+            </div>
+
+            <div class="control-row">
+                <span>Image Flip / Mirror</span>
+                <div class="btn-group">
+                    <button class="btn-small" onclick="sendCommand('flip_on')">On</button>
+                    <button class="btn-small" onclick="sendCommand('flip_off')">Off</button>
+                </div>
+            </div>
+
+            <div class="control-row">
+                <span>Video Format</span>
+                <select id="video-format-select" onchange="sendVal('format_set', this.value)" class="btn-small" style="background:#333; color:white; border: 1px solid #555; padding: 5px; border-radius: 4px; outline: none; cursor: pointer;">
+                    <option value="0">1080p25 (HDMI) / 1080p25 (SDI)</option>
+                    <option value="1">1080p30 (HDMI) / 1080p30 (SDI)</option>
+                    <option value="2">1080p50 (HDMI) / 720p50 (SDI)</option>
+                    <option value="3">1080p60 (HDMI) / 720p60 (SDI)</option>
+                    <option value="4">720p25 (HDMI) / 720p25 (SDI)</option>
+                    <option value="5">720p30 (HDMI) / 720p30 (SDI)</option>
+                    <option value="6">720p50 (HDMI) / 720p50 (SDI)</option>
+                    <option value="7">720p60 (HDMI) / 720p60 (SDI)</option>
+                </select>
+            </div>
+
         </div>
     </div>
 
@@ -522,17 +574,34 @@
 
         function connectCamera() {
             const mode = document.getElementById('conn-mode').value;
+            localStorage.setItem('visca_mode', mode);
+            
             let data = { mode: mode };
             if (mode === 'tcp') {
                 data.ip = document.getElementById('conn-ip').value;
                 data.port = document.getElementById('conn-port').value;
+                localStorage.setItem('visca_ip', data.ip);
+                localStorage.setItem('visca_port', data.port);
             } else {
                 data.port = document.getElementById('conn-com').value;
                 data.baud = document.getElementById('conn-baud').value;
+                localStorage.setItem('visca_com', data.port);
+                localStorage.setItem('visca_baud', data.baud);
             }
             document.getElementById('status-msg').innerText = "Connecting...";
             socket.emit('connect_camera', data);
         }
+
+        function loadSavedConnection() {
+            if(localStorage.getItem('visca_mode')) document.getElementById('conn-mode').value = localStorage.getItem('visca_mode');
+            if(localStorage.getItem('visca_ip')) document.getElementById('conn-ip').value = localStorage.getItem('visca_ip');
+            if(localStorage.getItem('visca_port')) document.getElementById('conn-port').value = localStorage.getItem('visca_port');
+            if(localStorage.getItem('visca_com')) document.getElementById('conn-com').value = localStorage.getItem('visca_com');
+            if(localStorage.getItem('visca_baud')) document.getElementById('conn-baud').value = localStorage.getItem('visca_baud');
+            toggleConnFields();
+        }
+        
+        document.addEventListener("DOMContentLoaded", loadSavedConnection);
 
         socket.on('connection_status', (data) => {
             const el = document.getElementById('status-msg');
@@ -548,21 +617,6 @@
         let lastGpCmd = null;
         let lastPayloadStr = "";
         let lastZooming = false;
-
-        // Stato Movimento (PT)
-        let lastMoveCmd = 'stop';
-        let lastMovePayload = "";
-        let moveStopTimer = null;
-        let isMoveStopping = false;
-
-        // Stato Zoom (Z)
-        let lastZoomCmd = 'zoom_stop';
-        let lastZoomPayload = "";
-
-        // Configurazione
-        const DEADZONE = 0.15;
-        const MAX_PAN = 24;
-        const MAX_TILT = 20;
 
         window.addEventListener("gamepadconnected", (e) => {
             gpIndex = e.gamepad.index;
@@ -592,10 +646,6 @@
                 return sign * Math.pow(norm, EXPO);
             }
 
-            /* =====================
-               PAN / TILT CONTINUO
-               ===================== */
-
             const panVal = applyExpo(gp.axes[0]);
             const tiltVal = applyExpo(gp.axes[1]);
 
@@ -605,13 +655,7 @@
             const p_spd = Math.max(1, Math.ceil(Math.abs(panVal) * MAX_PAN));
             const t_spd = Math.max(1, Math.ceil(Math.abs(tiltVal) * MAX_TILT));
 
-            const movePayload = {
-                p_dir: p_dir,
-                t_dir: t_dir,
-                p_spd: p_spd,
-                t_spd: t_spd
-            };
-
+            const movePayload = { p_dir: p_dir, t_dir: t_dir, p_spd: p_spd, t_spd: t_spd };
             const moveStr = JSON.stringify(movePayload);
 
             if (moveStr !== lastPayloadStr) {
@@ -619,38 +663,20 @@
                 lastPayloadStr = moveStr;
             }
 
-            /* =====================
-               ZOOM SEPARATO
-               ===================== */
-
             const zoomOutVal = gp.buttons[6].value;
             const zoomInVal = gp.buttons[7].value;
 
             if (zoomInVal > 0.1) {
-                socket.emit('ptz_command', {
-                    cmd: 'zoom_tele',
-                    z_spd: Math.floor(zoomInVal * 7)
-                });
-            }
-            else if (zoomOutVal > 0.1) {
-                socket.emit('ptz_command', {
-                    cmd: 'zoom_wide',
-                    z_spd: Math.floor(zoomOutVal * 7)
-                });
-            }
-            else {
-                // Manda stop zoom SOLO se prima stavamo zoomando
+                socket.emit('ptz_command', { cmd: 'zoom_tele', z_spd: Math.floor(zoomInVal * 7) });
+            } else if (zoomOutVal > 0.1) {
+                socket.emit('ptz_command', { cmd: 'zoom_wide', z_spd: Math.floor(zoomOutVal * 7) });
+            } else {
                 if (lastZooming) {
                     socket.emit('ptz_command', { cmd: 'zoom_stop' });
                     lastZooming = false;
                 }
             }
-
             lastZooming = (zoomInVal > 0.1 || zoomOutVal > 0.1);
-
-            /* =====================
-               FOCUS & PANIC
-               ===================== */
 
             if (gp.buttons[12].pressed) socket.emit('ptz_command', { cmd: 'focus_near' });
             if (gp.buttons[13].pressed) socket.emit('ptz_command', { cmd: 'focus_far' });
@@ -659,7 +685,6 @@
 
             requestAnimationFrame(gamepadLoop);
         }
-
 
         // --- UI LISTENERS (MOUSE/TOUCH) ---
         document.querySelectorAll('.joy-btn, .round-btn-lg').forEach(btn => {
